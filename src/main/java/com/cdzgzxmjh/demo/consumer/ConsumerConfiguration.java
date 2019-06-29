@@ -15,8 +15,8 @@ public class ConsumerConfiguration {
 
     /**
      * 以API形式定义ConnectionFactory，如果不做定义，spring会以默认配置创建
-     * 缺省的ConnectionFacotry，详见
-     * orspringframework.boot.autoconfigure.amqp.RabbitAutoConfiguration$RabbitConnectionFactoryCreator.rabbitConnectionFactory
+     * 缺省的ConnectionFactory，详见
+     * org.springframework.boot.autoconfigure.amqp.RabbitAutoConfiguration$RabbitConnectionFactoryCreator.rabbitConnectionFactory
      * 参数取自 org.springframework.boot.autoconfigure.amqp.RabbitProperties 默认值
      * 可以通过spring.rabbit 进行properties形式的自定义设置
      * @return
