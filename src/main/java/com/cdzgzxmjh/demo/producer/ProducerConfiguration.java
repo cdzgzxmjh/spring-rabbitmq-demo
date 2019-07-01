@@ -5,14 +5,18 @@ import org.springframework.amqp.rabbit.connection.CachingConnectionFactory;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitAdmin;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.amqp.rabbit.transaction.RabbitTransactionManager;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.transaction.support.AbstractPlatformTransactionManager;
 
 /**
  * @author maijiaheng
  * @date 2019/6/29 11:23
  */
-//@Configuration
+@Configuration
 public class ProducerConfiguration {
     private String demoQueueName = "demo-1-queue";
     private String demoExchange = "demo-exchange-direct-m";
@@ -24,6 +28,7 @@ public class ProducerConfiguration {
         factory.setPort(5672);
         factory.setUsername("admin");
         factory.setPassword("admin123");
+        factory.setPublisherConfirms(false);
         return factory;
     }
 
@@ -79,20 +84,25 @@ public class ProducerConfiguration {
     @Autowired
     public RabbitTemplate initRabbitTemplate(ConnectionFactory factory) {
         RabbitTemplate template = new RabbitTemplate(factory);
-        /*
-         * 写法1：显式地注明exchange与exchange绑定的routing key，根据消息模式
-         * 进行标准路由
-         */
         template.setExchange(demoExchange);
         template.setRoutingKey("amqp");
-
-        /*
-         * 写法2：利用default exchange，default exchange为一个direct exchange，
-         * 默认以queue名称为routing key隐式绑定所有queue
-         */
-//        template.setRoutingKey(demoQueueName);
-//        template.setDefaultReceiveQueue(demoQueueName);
+        template.setChannelTransacted(true);
+        template.setDefaultReceiveQueue(demoQueueName);
 
         return template;
+    }
+
+    /**
+     * 在没有其他tx-manager的情况下，必须至少创建一个，否则无法进行@Transaction
+     * 的动态代理，从而也无法形成外部事务
+     * @param factory
+     * @return
+     */
+    @Bean
+    @Autowired
+    @ConditionalOnMissingBean(value = AbstractPlatformTransactionManager.class)
+    public RabbitTransactionManager initRabbitTransactionManager(ConnectionFactory factory) {
+        RabbitTransactionManager txManager = new RabbitTransactionManager(factory);
+        return txManager;
     }
 }
