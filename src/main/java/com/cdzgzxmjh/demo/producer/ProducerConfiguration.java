@@ -1,21 +1,28 @@
 package com.cdzgzxmjh.demo.producer;
 
+import com.cdzgzxmjh.demo.common.BaseUtils;
 import org.springframework.amqp.core.*;
+import org.springframework.amqp.core.Queue;
 import org.springframework.amqp.rabbit.connection.CachingConnectionFactory;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitAdmin;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+import java.util.*;
 
 /**
  * @author maijiaheng
  * @date 2019/6/29 11:23
  */
-//@Configuration
+@Configuration
 public class ProducerConfiguration {
-    private String demoQueueName = "demo-1-queue";
-    private String demoExchange = "demo-exchange-direct-m";
+    private String[] exchangeType = {ExchangeTypes.DIRECT, ExchangeTypes.FANOUT, ExchangeTypes.TOPIC};
+    private int queueNum = 3;
+
+    private Map<String, List<Queue>> queueStorage;
 
     @Bean
     public ConnectionFactory initConnectionFactory() {
@@ -39,60 +46,107 @@ public class ProducerConfiguration {
     }
 
     /**
-     * 定义一个exchange，初次执行交互时实际创建
+     * 定义exchange
      * @return
      */
-    @Bean
-    public Exchange initExchange() {
-        return new DirectExchange(demoExchange);
+    @Bean("exchangeRegistry")
+    @Autowired
+    public Map<String, Exchange> initExchanges(AmqpAdmin admin) {
+        Map<String, Exchange> exchangeMap = new HashMap<>();
+        for (String type : exchangeType) {
+            Exchange exchange = BaseUtils.newExchange(getExchangeName(type), type);
+            admin.declareExchange(exchange);
+            exchangeMap.put(type, exchange);
+        }
+        return exchangeMap;
     }
 
     /**
-     * 定义一个queue，初次执行交互时实际创建
+     * 定义queue
      * @return
      */
-    @Bean
-    public Queue initQueue() {
-        return new Queue(demoQueueName);
+    @Bean("queueStorage")
+    @Autowired
+    public Map<String, List<Queue>> initQueues(AmqpAdmin admin) {
+        return getQueueStorage(admin);
     }
 
-    /**
-     * 定义一个binding
-     * @param admin
-     * @return
-     */
-    @Autowired
-    public Binding initBinding(AmqpAdmin admin) {
-        /*
-         * param 0 : 绑定关系中的被路由目标，如 EXCHANGE_A -> QUEUE_B，此处为QUEUE_B名称
-         * param 1 : 绑定关系中的被路由目标类型，见Binding.DestinationType
-         * param 2 : exchange
-         * param 3 : routing key
-         * param 4 : 参数Map
-         */
-        Binding binding = new Binding(demoQueueName, Binding.DestinationType.QUEUE, demoExchange, "amqp", null);
-        admin.declareBinding(binding);
-        return binding;
+    private Map<String, List<Queue>> getQueueStorage(AmqpAdmin admin) {
+        if (Objects.isNull(queueStorage)) {
+            Map<String, List<Queue>> queueMap = new HashMap<>();
+            for (String type : exchangeType) {
+                List<Queue> queues;
+                if (ExchangeTypes.TOPIC.equals(type)) {
+                    queues = new ArrayList<>();
+                    queues.add(new Queue("one.topic.zero"));
+                    queues.add(new Queue("one.topic.one"));
+                    queues.add(new Queue("my.topic.one"));
+                    queues.add(new Queue("my.topic.two"));
+                } else {
+                    queues = BaseUtils.newQueues(getQueuePrefix(type), queueNum);
+                }
+                for (Queue queue : queues) {
+                    admin.declareQueue(queue);
+                }
+                queueMap.put(type, queues);
+            }
+            queueStorage = queueMap;
+        }
+        return queueStorage;
     }
 
     @Bean
     @Autowired
-    public RabbitTemplate initRabbitTemplate(ConnectionFactory factory) {
-        RabbitTemplate template = new RabbitTemplate(factory);
-        /*
-         * 写法1：显式地注明exchange与exchange绑定的routing key，根据消息模式
-         * 进行标准路由
-         */
-        template.setExchange(demoExchange);
-        template.setRoutingKey("amqp");
+    public List<Binding> initBindings(AmqpAdmin admin) {
+        List<Binding> bindingList = new ArrayList<>();
+        Map<String, List<Queue>> queueMap = getQueueStorage(admin);
+        for (String type : exchangeType) {
+            List<Binding> bindings;
+            if (ExchangeTypes.TOPIC.equals(type)) {
+                /*
+                 * 专门对topic类型的绑定做特别的定义，绑定名称以英文符号'.'分割
+                 * ，#匹配0或多个单词，*匹配1个单词
+                 */
+                bindings = new ArrayList<>();
+                bindings.add(new Binding("one.topic.zero", Binding.DestinationType.QUEUE, getExchangeName(type), "#", null));
+                bindings.add(new Binding("one.topic.one", Binding.DestinationType.QUEUE, getExchangeName(type), "#", null));
+                bindings.add(new Binding("my.topic.one", Binding.DestinationType.QUEUE, getExchangeName(type), "*.*.one", null));
+                bindings.add(new Binding("my.topic.two", Binding.DestinationType.QUEUE, getExchangeName(type), "#.two", null));
+            } else {
+                bindings = BaseUtils.newBinding(getExchangeName(type), queueMap.get(type), getRoutingKeyPrefix(type));
+            }
+            bindingList.addAll(bindings);
+            for (Binding binding : bindings) {
+                admin.declareBinding(binding);
+            }
+        }
+        return bindingList;
+    }
 
-        /*
-         * 写法2：利用default exchange，default exchange为一个direct exchange，
-         * 默认以queue名称为routing key隐式绑定所有queue
-         */
-//        template.setRoutingKey(demoQueueName);
-//        template.setDefaultReceiveQueue(demoQueueName);
+    @Bean("templateRegistry")
+    @Autowired
+    public Map<String, RabbitTemplate> initRabbitTemplates(ConnectionFactory factory) {
+        Map<String, RabbitTemplate> templates = new HashMap<>();
 
-        return template;
+        for (String type : exchangeType) {
+            RabbitTemplate template = new RabbitTemplate(factory);
+            template.setExchange(getExchangeName(type));
+            template.setRoutingKey(getRoutingKeyPrefix(type) + "1");
+            templates.put(type, template);
+        }
+
+        return templates;
+    }
+
+    private String getExchangeName(String type) {
+        return "t1." + type;
+    }
+
+    private String getQueuePrefix(String type) {
+        return "q1." + type + ".";
+    }
+
+    private String getRoutingKeyPrefix(String type) {
+        return "r1." + type + ".";
     }
 }

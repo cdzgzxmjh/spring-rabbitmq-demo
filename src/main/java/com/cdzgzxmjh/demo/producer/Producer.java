@@ -1,9 +1,12 @@
 package com.cdzgzxmjh.demo.producer;
 
+import org.springframework.amqp.core.ExchangeTypes;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.jms.JmsProperties;
 import org.springframework.stereotype.Component;
+
+import javax.annotation.Resource;
+import java.util.Map;
+import java.util.Objects;
 
 /**
  * @author maijiaheng
@@ -11,10 +14,24 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class Producer {
-    @Autowired
-    private RabbitTemplate template;
+    @Resource(name = "templateRegistry")
+    private Map<String, RabbitTemplate> templates;
 
-    public void send(String msg) {
+    public boolean send(String msg, String type) {
+        RabbitTemplate template = templates.get(type);
+        if (Objects.isNull(template)) {
+            return false;
+        }
         template.convertAndSend(msg);
+        return true;
+    }
+
+    public boolean sendTopic(String msg, String routing) {
+        RabbitTemplate template = templates.get(ExchangeTypes.TOPIC);
+        if (Objects.isNull(template)) {
+            return false;
+        }
+        template.convertAndSend(routing, msg);
+        return true;
     }
 }
