@@ -7,15 +7,17 @@ import org.springframework.amqp.rabbit.core.RabbitAdmin;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 
 /**
  * @author maijiaheng
  * @date 2019/6/29 11:23
  */
-//@Configuration
+@Configuration
 public class ProducerConfiguration {
-    private String demoQueueName = "demo-1-queue";
-    private String demoExchange = "demo-exchange-direct-m";
+    public static String DEMO_QUEUE_NAME = "demo-1-queue";
+    public static String DEMO_EXCHANGE = "demo-exchange-direct-m";
+    public static String BASIC_DIRECT_ROUTING_KEY = "amqp";
 
     @Bean
     public ConnectionFactory initConnectionFactory() {
@@ -44,7 +46,7 @@ public class ProducerConfiguration {
      */
     @Bean
     public Exchange initExchange() {
-        return new DirectExchange(demoExchange);
+        return new DirectExchange(DEMO_EXCHANGE);
     }
 
     /**
@@ -53,7 +55,7 @@ public class ProducerConfiguration {
      */
     @Bean
     public Queue initQueue() {
-        return new Queue(demoQueueName);
+        return new Queue(DEMO_QUEUE_NAME);
     }
 
     /**
@@ -70,7 +72,7 @@ public class ProducerConfiguration {
          * param 3 : routing key
          * param 4 : 参数Map
          */
-        Binding binding = new Binding(demoQueueName, Binding.DestinationType.QUEUE, demoExchange, "amqp", null);
+        Binding binding = new Binding(DEMO_QUEUE_NAME, Binding.DestinationType.QUEUE, DEMO_EXCHANGE, BASIC_DIRECT_ROUTING_KEY, null);
         admin.declareBinding(binding);
         return binding;
     }
@@ -83,15 +85,15 @@ public class ProducerConfiguration {
          * 写法1：显式地注明exchange与exchange绑定的routing key，根据消息模式
          * 进行标准路由
          */
-        template.setExchange(demoExchange);
+        template.setExchange(DEMO_EXCHANGE);
         template.setRoutingKey("amqp");
 
         /*
          * 写法2：利用default exchange，default exchange为一个direct exchange，
          * 默认以queue名称为routing key隐式绑定所有queue
          */
-//        template.setRoutingKey(demoQueueName);
-//        template.setDefaultReceiveQueue(demoQueueName);
+//        template.setRoutingKey(DEMO_QUEUE_NAME);
+//        template.setDefaultReceiveQueue(DEMO_QUEUE_NAME);
 
         return template;
     }

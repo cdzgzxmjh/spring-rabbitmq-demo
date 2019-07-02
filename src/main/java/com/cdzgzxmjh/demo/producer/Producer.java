@@ -1,20 +1,13 @@
 package com.cdzgzxmjh.demo.producer;
 
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.jms.JmsProperties;
-import org.springframework.stereotype.Component;
-
 /**
  * @author maijiaheng
- * @date 2019/6/29 12:17
+ * @date 2019/7/2 10:58
  */
-@Component
-public class Producer {
-    @Autowired
-    private RabbitTemplate template;
+public interface Producer {
+    void publish();
 
-    public void send(String msg) {
-        template.convertAndSend(msg);
-    }
+    void batchPublish();
+
+    void asynPublish();
 }
