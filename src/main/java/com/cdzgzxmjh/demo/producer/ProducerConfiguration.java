@@ -7,12 +7,13 @@ import org.springframework.amqp.rabbit.core.RabbitAdmin;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 
 /**
  * @author maijiaheng
  * @date 2019/6/29 11:23
  */
-//@Configuration
+@Configuration
 public class ProducerConfiguration {
     private String demoQueueName = "demo-1-queue";
     private String demoExchange = "demo-exchange-direct-m";
