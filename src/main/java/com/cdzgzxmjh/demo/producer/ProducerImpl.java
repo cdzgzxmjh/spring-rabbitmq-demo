@@ -1,8 +1,10 @@
 package com.cdzgzxmjh.demo.producer;
 
 import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.ConfirmListener;
 import com.rabbitmq.client.MessageProperties;
+import org.springframework.amqp.rabbit.connection.CorrelationData;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -13,6 +15,7 @@ import java.util.Collections;
 import java.util.Objects;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * @author maijiaheng
@@ -21,6 +24,29 @@ import java.util.TreeSet;
 @Service("producerTarget")
 public class ProducerImpl implements Producer {
     private ThreadLocal<Channel> channelThreadLocal = new ThreadLocal<>();
+
+    @Autowired
+    private RabbitTemplate template;
+
+    /**
+     * 发送序号
+     */
+    private AtomicLong seq = new AtomicLong(0);
+
+    /**
+     * 待返回响应的有序Set，用于异步返回确认
+     */
+    private SortedSet<Long> confirmSet = Collections.synchronizedSortedSet(new TreeSet<>());
+
+    private CustomConfirmListener confirmListener = new CustomConfirmListener(confirmSet);
+
+    @Override
+    public void send() {
+        for (int i=0; i<5; i++) {
+            CorrelationData correlationData = new CorrelationData(Long.toString(seq.incrementAndGet()));
+            template.convertAndSend(template.getExchange(), template.getRoutingKey(), System.currentTimeMillis(), correlationData);
+        }
+    }
 
     @Override
     public void publish() {
@@ -73,45 +99,11 @@ public class ProducerImpl implements Producer {
     @Override
     public void asynPublish() {
         Channel channel = checkChannel();
-        // 待返回响应的有序Set
-        SortedSet<Long> confirmSet = Collections.synchronizedSortedSet(new TreeSet<>());
         try {
-            channel.addConfirmListener(new ConfirmListener() {
-                private Long currentSeq = 0L;
-                @Override
-                public void handleAck(long deliveryTag, boolean multiple) throws IOException {
-                    synchronized (currentSeq) {
-                        System.out.println("成功处理数量：" + (deliveryTag - currentSeq));
-                        currentSeq = deliveryTag;
-                    }
-                    if (multiple) {
-                        // 全批数据完成
-                        System.out.println("批次发送成功");
-                        confirmSet.headSet(deliveryTag + 1).clear();
-                    } else {
-                        System.out.println(deliveryTag + ":发送成功");
-                        confirmSet.remove(deliveryTag);
-                    }
-                }
-
-                @Override
-                public void handleNack(long deliveryTag, boolean multiple) throws IOException {
-                    synchronized (currentSeq) {
-                        System.out.println("失败处理数量：" + (deliveryTag - currentSeq));
-                        currentSeq = deliveryTag;
-                    }
-                    if (multiple) {
-                        // 全批数据失败
-                        System.out.println("批次发送失败");
-                        confirmSet.headSet(deliveryTag + 1).clear();
-                    } else {
-                        System.out.println(deliveryTag + ":发送失败");
-                        confirmSet.remove(deliveryTag);
-                    }
-                }
-            });
+            channel.addConfirmListener(confirmListener);
             channel.confirmSelect();
             for (int i=0; i<5; i++) {
+                // 如果通过单一Channel发送可以通过getNextPublishSeqNo获取序号
                 Long seqNo = channel.getNextPublishSeqNo();
                 channel.basicPublish(ProducerConfiguration.DEMO_EXCHANGE
                         , ProducerConfiguration.BASIC_DIRECT_ROUTING_KEY

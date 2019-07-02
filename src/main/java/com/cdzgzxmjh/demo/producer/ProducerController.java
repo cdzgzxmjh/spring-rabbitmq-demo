@@ -30,4 +30,10 @@ public class ProducerController {
         producer.asynPublish();
         return "Ok";
     }
+
+    @GetMapping("/rabbitmq/template")
+    public String send() {
+        producer.send();
+        return "Ok";
+    }
 }

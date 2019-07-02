@@ -40,6 +40,11 @@ public class ProducerProxy implements Producer {
         invoke(() -> target.asynPublish());
     }
 
+    @Override
+    public void send() {
+        target.send();
+    }
+
     private void invoke(Runnable o) {
         checkTarget();
         Connection connection = factory.createConnection();

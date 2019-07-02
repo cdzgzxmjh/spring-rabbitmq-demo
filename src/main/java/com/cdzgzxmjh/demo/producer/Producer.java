@@ -10,4 +10,6 @@ public interface Producer {
     void batchPublish();
 
     void asynPublish();
+
+    void send();
 }

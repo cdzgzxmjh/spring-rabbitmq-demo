@@ -82,19 +82,11 @@ public class ProducerConfiguration {
     @Autowired
     public RabbitTemplate initRabbitTemplate(ConnectionFactory factory) {
         RabbitTemplate template = new RabbitTemplate(factory);
-        /*
-         * 写法1：显式地注明exchange与exchange绑定的routing key，根据消息模式
-         * 进行标准路由
-         */
         template.setExchange(DEMO_EXCHANGE);
-        template.setRoutingKey("amqp");
+        template.setRoutingKey(BASIC_DIRECT_ROUTING_KEY);
 
-        /*
-         * 写法2：利用default exchange，default exchange为一个direct exchange，
-         * 默认以queue名称为routing key隐式绑定所有queue
-         */
-//        template.setRoutingKey(DEMO_QUEUE_NAME);
-//        template.setDefaultReceiveQueue(DEMO_QUEUE_NAME);
+        // 用于confirm确认监听，基于spring的rabbitTemplate采用此方式进行异步confirm
+        template.setConfirmCallback(new CustomCallback());
 
         return template;
     }
