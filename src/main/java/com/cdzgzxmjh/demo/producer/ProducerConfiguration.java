@@ -26,6 +26,7 @@ public class ProducerConfiguration {
         factory.setPort(5672);
         factory.setUsername("admin");
         factory.setPassword("admin123");
+        factory.setPublisherConfirms(true);
         return factory;
     }
 
