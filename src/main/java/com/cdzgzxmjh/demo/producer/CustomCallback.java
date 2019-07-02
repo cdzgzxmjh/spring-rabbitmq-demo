@@ -21,6 +21,6 @@ public class CustomCallback implements RabbitTemplate.ConfirmCallback, RabbitTem
 
     @Override
     public void returnedMessage(Message message, int replyCode, String replyText, String exchange, String routingKey) {
-        // TODO
+        // TODO 未投递到 queue 退回模式
     }
 }
