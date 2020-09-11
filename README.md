@@ -8,3 +8,8 @@
 2.手动基于channel的批量publish与confirm<br>
 3.手动基于channel的异步publish与confirm<br>
 4.基于rabbitmq-template的异步confirm<br>
+
+
+广播(fanout)模式
+#### git_branch : fanout_exchange_demo
+1.提供fanout模式demo

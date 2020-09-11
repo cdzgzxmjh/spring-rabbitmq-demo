@@ -10,8 +10,13 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class ConsumerListener {
-    @RabbitListener(queues = ConsumerConfiguration.DEMO_QUEUE_NAME)
-    public void listen(Message msg) {
-        System.out.println("Receive : " + new String(msg.getBody()));
+    @RabbitListener(queues = ConsumerConfiguration.DEMO_QUEUE_NAME_1)
+    public void listen1(Message msg) {
+        System.out.println("Receive from queue -- " + ConsumerConfiguration.DEMO_QUEUE_NAME_1 + ": " + new String(msg.getBody()));
+    }
+
+    @RabbitListener(queues = ConsumerConfiguration.DEMO_QUEUE_NAME_2)
+    public void listen2(Message msg) {
+        System.out.println("Receive from queue -- " + ConsumerConfiguration.DEMO_QUEUE_NAME_2 + ": " + new String(msg.getBody()));
     }
 }

@@ -11,7 +11,8 @@ import org.springframework.context.annotation.Configuration;
  */
 @Configuration
 public class ConsumerConfiguration {
-    public static final String DEMO_QUEUE_NAME = "demo-1-queue";
+    public static final String DEMO_QUEUE_NAME_1 = "demo-0-queue";
+    public static final String DEMO_QUEUE_NAME_2 = "demo-1-queue";
 
     /**
      * 以API形式定义ConnectionFactory，如果不做定义，spring会以默认配置创建

@@ -55,7 +55,7 @@ public class ProducerImpl implements Producer {
             channel.confirmSelect();
             for (int i=0; i<5; i++) {
                 channel.basicPublish(ProducerConfiguration.DEMO_EXCHANGE
-                        , ProducerConfiguration.BASIC_DIRECT_ROUTING_KEY
+                        , ""
                         , MessageProperties.PERSISTENT_BASIC
                         , (i + " : " +  LocalDateTime.now().format(DateTimeFormatter.ISO_TIME))
                                 .getBytes(Charset.defaultCharset()));
@@ -79,7 +79,7 @@ public class ProducerImpl implements Producer {
             channel.confirmSelect();
             for (int i=0; i<5; i++) {
                 channel.basicPublish(ProducerConfiguration.DEMO_EXCHANGE
-                        , ProducerConfiguration.BASIC_DIRECT_ROUTING_KEY
+                        , ""
                         , MessageProperties.PERSISTENT_BASIC
                         , (i + " : " +  LocalDateTime.now().format(DateTimeFormatter.ISO_TIME))
                                 .getBytes(Charset.defaultCharset()));
@@ -102,7 +102,7 @@ public class ProducerImpl implements Producer {
                 // 如果通过单一Channel发送可以通过getNextPublishSeqNo获取序号
                 Long seqNo = channel.getNextPublishSeqNo();
                 channel.basicPublish(ProducerConfiguration.DEMO_EXCHANGE
-                        , ProducerConfiguration.BASIC_DIRECT_ROUTING_KEY
+                        , ""
                         , MessageProperties.PERSISTENT_BASIC
                         , (i + " : " +  LocalDateTime.now().format(DateTimeFormatter.ISO_TIME))
                                 .getBytes(Charset.defaultCharset()));

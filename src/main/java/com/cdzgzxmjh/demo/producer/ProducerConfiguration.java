@@ -15,9 +15,10 @@ import org.springframework.context.annotation.Configuration;
  */
 @Configuration
 public class ProducerConfiguration {
-    public static String DEMO_QUEUE_NAME = "demo-1-queue";
-    public static String DEMO_EXCHANGE = "demo-exchange-direct-m";
-    public static String BASIC_DIRECT_ROUTING_KEY = "amqp";
+    public static String DEMO_QUEUE_NAME_1 = "demo-0-queue";
+    public static String DEMO_QUEUE_NAME_2 = "demo-1-queue";
+    public static String DEMO_EXCHANGE = "demo-exchange-fanout-m";
+//    public static String BASIC_DIRECT_ROUTING_KEY = "amqp";
 
     @Bean
     public ConnectionFactory initConnectionFactory() {
@@ -47,16 +48,7 @@ public class ProducerConfiguration {
      */
     @Bean
     public Exchange initExchange() {
-        return new DirectExchange(DEMO_EXCHANGE);
-    }
-
-    /**
-     * 定义一个queue，初次执行交互时实际创建
-     * @return
-     */
-    @Bean
-    public Queue initQueue() {
-        return new Queue(DEMO_QUEUE_NAME);
+        return new FanoutExchange(DEMO_EXCHANGE);
     }
 
     /**
@@ -65,7 +57,9 @@ public class ProducerConfiguration {
      * @return
      */
     @Autowired
-    public Binding initBinding(AmqpAdmin admin) {
+    public void initBinding(AmqpAdmin admin) {
+        admin.declareQueue(new Queue(DEMO_QUEUE_NAME_1, false));
+        admin.declareQueue(new Queue(DEMO_QUEUE_NAME_2, false));
         /*
          * param 0 : 绑定关系中的被路由目标，如 EXCHANGE_A -> QUEUE_B，此处为QUEUE_B名称
          * param 1 : 绑定关系中的被路由目标类型，见Binding.DestinationType
@@ -73,9 +67,8 @@ public class ProducerConfiguration {
          * param 3 : routing key
          * param 4 : 参数Map
          */
-        Binding binding = new Binding(DEMO_QUEUE_NAME, Binding.DestinationType.QUEUE, DEMO_EXCHANGE, BASIC_DIRECT_ROUTING_KEY, null);
-        admin.declareBinding(binding);
-        return binding;
+        admin.declareBinding(new Binding(DEMO_QUEUE_NAME_1, Binding.DestinationType.QUEUE, DEMO_EXCHANGE, "", null));
+        admin.declareBinding(new Binding(DEMO_QUEUE_NAME_2, Binding.DestinationType.QUEUE, DEMO_EXCHANGE, "", null));
     }
 
     @Bean
@@ -83,7 +76,7 @@ public class ProducerConfiguration {
     public RabbitTemplate initRabbitTemplate(ConnectionFactory factory) {
         RabbitTemplate template = new RabbitTemplate(factory);
         template.setExchange(DEMO_EXCHANGE);
-        template.setRoutingKey(BASIC_DIRECT_ROUTING_KEY);
+//        template.setRoutingKey(BASIC_DIRECT_ROUTING_KEY);
 
         // 用于confirm确认监听，基于spring的rabbitTemplate采用此方式进行异步confirm
         template.setConfirmCallback(new CustomCallback());
