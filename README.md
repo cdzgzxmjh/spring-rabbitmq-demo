@@ -8,3 +8,6 @@
 2.手动基于channel的批量publish与confirm<br>
 3.手动基于channel的异步publish与confirm<br>
 4.基于rabbitmq-template的异步confirm<br>
+
+#### git_branch : exchange_2_exchange_binding_demo
+Exchange向Exchange绑定的demo

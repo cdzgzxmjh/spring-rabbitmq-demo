@@ -17,6 +17,7 @@ import org.springframework.context.annotation.Configuration;
 public class ProducerConfiguration {
     public static String DEMO_QUEUE_NAME = "demo-1-queue";
     public static String DEMO_EXCHANGE = "demo-exchange-direct-m";
+    public static String DEMO_CHANNEL_EXCHANGE = "demo-exchange-channel-m";
     public static String BASIC_DIRECT_ROUTING_KEY = "amqp";
 
     @Bean
@@ -65,7 +66,8 @@ public class ProducerConfiguration {
      * @return
      */
     @Autowired
-    public Binding initBinding(AmqpAdmin admin) {
+    public void initBinding(AmqpAdmin admin) {
+        admin.declareExchange(new FanoutExchange(DEMO_CHANNEL_EXCHANGE, false, false));
         /*
          * param 0 : 绑定关系中的被路由目标，如 EXCHANGE_A -> QUEUE_B，此处为QUEUE_B名称
          * param 1 : 绑定关系中的被路由目标类型，见Binding.DestinationType
@@ -73,9 +75,8 @@ public class ProducerConfiguration {
          * param 3 : routing key
          * param 4 : 参数Map
          */
-        Binding binding = new Binding(DEMO_QUEUE_NAME, Binding.DestinationType.QUEUE, DEMO_EXCHANGE, BASIC_DIRECT_ROUTING_KEY, null);
-        admin.declareBinding(binding);
-        return binding;
+        admin.declareBinding(new Binding(DEMO_QUEUE_NAME, Binding.DestinationType.QUEUE, DEMO_CHANNEL_EXCHANGE, "", null));
+        admin.declareBinding(new Binding(DEMO_CHANNEL_EXCHANGE, Binding.DestinationType.EXCHANGE, DEMO_EXCHANGE, BASIC_DIRECT_ROUTING_KEY, null));
     }
 
     @Bean
