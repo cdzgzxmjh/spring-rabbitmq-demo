@@ -84,14 +84,10 @@ public class ProducerImpl implements Producer {
                         , (i + " : " +  LocalDateTime.now().format(DateTimeFormatter.ISO_TIME))
                                 .getBytes(Charset.defaultCharset()));
             }
-            if (channel.waitForConfirms()) {
-                System.out.println("批次发送成功");
-            } else {
-                System.out.println("批次发送失败");
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (InterruptedException e) {
+            channel.waitForConfirmsOrDie();
+            System.out.println("批次发送成功");
+        } catch (IOException | InterruptedException e) {
+            System.out.println("批次发送失败");
             e.printStackTrace();
         }
     }
